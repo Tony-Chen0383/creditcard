@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>信用卡分期手續費試算工具 V1.4</title>
+<style>
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --text:#172033;
+  --muted:#6b7280;
+  --line:#d9dfeb;
+  --blue:#1557a6;
+  --blue2:#eaf3ff;
+  --green:#0f7b6c;
+  --green2:#e9f8f4;
+  --yellow:#fff7bf;
+  --red:#d92d20;
+  --shadow:0 10px 28px rgba(30,42,70,.08);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  color:var(--text); background:var(--bg);
+}
+.app{max-width:1500px;margin:0 auto;padding:24px}
+.header{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px
+}
+.title h1{margin:0;font-size:32px;letter-spacing:.5px}
+.title p{margin:7px 0 0;color:var(--muted);font-size:14px}
+.bank-note{
+  max-width:720px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+  box-shadow:var(--shadow);font-size:14px;line-height:1.65
+}
+.bank-note b{color:#111827}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.panel{
+  background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden
+}
+.panel-head{
+  padding:17px 20px;color:#fff;display:flex;justify-content:space-between;align-items:center
+}
+.used .panel-head{background:var(--blue)}
+.new .panel-head{background:var(--green)}
+.panel-head h2{margin:0;font-size:23px}
+.panel-body{padding:18px}
+.mode-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.mode-tabs button{
+  border:1px solid var(--line);background:#fff;color:#334155;padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:700
+}
+.mode-tabs button.active{background:#111827;color:#fff;border-color:#111827}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.field{background:#fafbfe;border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:700}
+.field input{
+  width:100%;border:0;background:transparent;font-size:23px;font-weight:800;color:var(--text);outline:none
+}
+.field input[readonly]{color:#475569}
+.highlight{background:var(--yellow)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.kpi{
+  border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;text-align:center
+}
+.kpi span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.kpi strong{font-size:22px}
+.used .kpi strong{color:var(--blue)}
+.new .kpi strong{color:var(--green)}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{padding:11px 9px;text-align:center;border-bottom:1px solid var(--line);font-size:14px}
+th{background:#f1f5f9;font-size:12px;color:#475569}
+tr:last-child td{border-bottom:0}
+.amount{font-weight:800;color:var(--red)}
+.note{
+  margin-top:14px;border-radius:12px;padding:12px 13px;background:#f8fafc;border:1px solid var(--line);
+  color:#475569;font-size:13px;line-height:1.65
+}
+.note ul{margin:0;padding-left:18px}
+.footer{
+  margin-top:16px;display:flex;gap:10px;justify-content:flex-end
+}
+.btn{
+  border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer
+}
+.btn-secondary{background:#e5e7eb;color:#111827}
+.btn-primary{background:#111827;color:white}
+.small{font-size:12px;color:var(--muted)}
+.hidden{display:none!important}
+
+.new-installment-lock{
+  display:none;
+  margin:14px 0 10px;
+  padding:12px 14px;
+  border:1px solid #f3b7b3;
+  background:#fff1f0;
+  color:#b42318;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:800;
+  line-height:1.55;
+}
+.new-installment-lock.show{display:block}
+.installment-disabled{opacity:.42;filter:grayscale(.35);pointer-events:none}
+
+@media(max-width:1000px){
+  .grid{grid-template-columns:1fr}
+  .header{flex-direction:column}
+  .bank-note{max-width:none;width:100%}
+}
+@media(max-width:640px){
+  .app{padding:12px}
+  .title h1{font-size:25px}
+  .form-grid,.kpis{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title">
+      <h1>信用卡分期手續費試算工具 V1.4</h1>
+      <p>門市快速試算｜一般刷卡・分期・部分刷卡部分付現</p>
+    </div>
+    <div class="bank-note">
+      <div><b>目前可刷分期銀行：</b>富邦、聯邦、台新、國泰、匯豐、玉山、星展、中國信託、第一、兆豐、華南</div>
+      <div><b>支付方式：</b>刷卡及 Line Pay 視為同類型支付方式</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="panel used">
+      <div class="panel-head">
+        <h2>二手機</h2>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field highlight">
+            <label>輸入銷售金額</label>
+            <input id="usedPrice" type="number" min="0" step="1" value="23900">
+          </div>
+          <div class="field">
+            <label>單筆刷總額</label>
+            <input id="usedSingle" readonly>
+          </div>
+          <div class="field">
+            <label>部分付現</label>
+            <input id="usedCash" type="number" min="0" step="1" value="0">
+          </div>
+          <div class="field">
+            <label>剩餘刷卡金額</label>
+            <input id="usedCardBase" readonly>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><span>3期總服務費</span><strong id="usedFee3">-</strong></div>
+          <div class="kpi"><span>6期總服務費</span><strong id="usedFee6">-</strong></div>
+          <div class="kpi"><span>12期總服務費</span><strong id="usedFee12">-</strong></div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>分期期數</th><th>費率</th><th>各期總刷卡金額</th><th>每期利息</th><th>總服務費</th><th>每期繳款金額</th></tr>
+            </thead>
+            <tbody id="usedRows"></tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <ul>
+            <li>分期試算費率：3期 5%／6期 7%／12期 9%。</li>
+            <li>部分付現時，請輸入實際付現金額，剩餘金額自動作為刷卡試算基礎。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel new">
+      <div class="panel-head">
+        <h2>全新機</h2>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field highlight">
+            <label>輸入銷售金額（POS牌價／含稅）</label>
+            <input id="newPrice" type="number" min="0" step="1" value="24900">
+          </div>
+          <div class="field">
+            <label>單筆刷總額（+3%）</label>
+            <input id="newSingle" readonly>
+          </div>
+          <div class="field">
+            <label>部分付現金額</label>
+            <input id="newCash" type="number" min="0" step="1" value="0">
+          </div>
+          <div class="field">
+            <label>剩餘刷卡金額（+3%）</label>
+            <input id="newCardRemain" readonly>
+          </div>
+        </div>
+
+        <div id="newInstallmentLock" class="new-installment-lock">
+          ⚠ 現金＋刷卡交易不可連動下方分期試算。請將「部分付現金額」清為 0，才會恢復分期計算。
+        </div>
+
+        <div class="kpis" id="newInstallmentKpis">
+          <div class="kpi"><span>3期總服務費</span><strong id="newFee3">-</strong></div>
+          <div class="kpi"><span>6期總服務費</span><strong id="newFee6">-</strong></div>
+          <div class="kpi"><span>12期總服務費</span><strong id="newFee12">-</strong></div>
+        </div>
+
+        <div class="table-wrap" id="newInstallmentTable">
+          <table>
+            <thead>
+              <tr><th>分期期數</th><th>費率</th><th>各期總刷卡金額</th><th>每期利息</th><th>總服務費</th><th>每期繳款金額</th></tr>
+            </thead>
+            <tbody id="newRows"></tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <ul>
+            <li>請在綠底欄位輸入銷售牌價，分期試算以牌價為基礎。</li>
+            <li>一般單筆刷卡與剩餘刷卡金額加 3% 試算。</li>
+            <li>新機 0701 牌價若為現金含稅價，刷卡／電子支付皆適用。</li>
+            <li>新機含稅，可與配件一起銷售。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer">
+    <button class="btn btn-secondary" id="resetBtn">重設</button>
+    <button class="btn btn-primary" id="copyBtn">複製試算結果</button>
+  </div>
+  <p class="small">※ 本工具為門市快速試算用途；實際交易金額仍以公司與銀行最新規則為準。</p>
+</div>
+
+<script>
+const plans = [
+  {months:3, rate:0.05},
+  {months:6, rate:0.07},
+  {months:12, rate:0.09}
+];
+const fmt = n => Math.round(Number(n||0)).toLocaleString('zh-TW');
+
+function buildRows(base, tbodyId, prefix){
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = "";
+  plans.forEach(p=>{
+    const fee = base*p.rate;
+    const total = base+fee;
+    const monthlyInterest = fee/p.months;
+    const monthlyPay = total/p.months;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.months}</td>
+      <td>${Math.round(p.rate*100)}%</td>
+      <td class="amount">${fmt(total)}</td>
+      <td>${fmt(monthlyInterest)}</td>
+      <td>${fmt(fee)}</td>
+      <td>${fmt(monthlyPay)}</td>`;
+    tbody.appendChild(tr);
+    document.getElementById(prefix+"Fee"+p.months).textContent = "$"+fmt(fee);
+  });
+}
+
+function calcUsed(){
+  const price = Math.max(0, Number(document.getElementById("usedPrice").value||0));
+  const cash = Math.min(price, Math.max(0, Number(document.getElementById("usedCash").value||0)));
+  const base = Math.max(0, price-cash);
+  document.getElementById("usedCardBase").value = fmt(base);
+  document.getElementById("usedSingle").value = fmt(price);
+  buildRows(base,"usedRows","used");
+}
+
+
+function lockNewInstallment(){
+  document.getElementById("newInstallmentLock").classList.add("show");
+  document.getElementById("newInstallmentKpis").classList.add("installment-disabled");
+  document.getElementById("newInstallmentTable").classList.add("installment-disabled");
+  [3,6,12].forEach(m=>document.getElementById("newFee"+m).textContent="—");
+  const tbody = document.getElementById("newRows");
+  tbody.innerHTML = plans.map(p=>`
+    <tr>
+      <td>${p.months}</td>
+      <td>${Math.round(p.rate*100)}%</td>
+      <td>—</td><td>—</td><td>—</td><td>—</td>
+    </tr>`).join("");
+}
+
+function unlockNewInstallment(){
+  document.getElementById("newInstallmentLock").classList.remove("show");
+  document.getElementById("newInstallmentKpis").classList.remove("installment-disabled");
+  document.getElementById("newInstallmentTable").classList.remove("installment-disabled");
+}
+
+function calcNew(){
+  const price = Math.max(0, Number(document.getElementById("newPrice").value||0));
+  const cashInput = Math.max(0, Number(document.getElementById("newCash").value||0));
+  const cash = Math.min(price, cashInput);
+  const single = price*1.03;
+  const remainBase = Math.max(0, price-cash);
+  const remainSwipe = remainBase*1.03;
+
+  document.getElementById("newSingle").value = fmt(single);
+  document.getElementById("newCardRemain").value = fmt(remainSwipe);
+
+  // 防呆：只要有「現金＋刷卡」組合，分期區就停止連動。
+  if(cash > 0 && remainBase > 0){
+    lockNewInstallment();
+    return;
+  }
+
+  unlockNewInstallment();
+  // 全現金時沒有刷卡金額，分期試算以 0 顯示；純刷卡時正常試算。
+  buildRows(cash >= price ? 0 : price, "newRows", "new");
+}
+
+["usedPrice","usedCash"].forEach(id=>document.getElementById(id).addEventListener("input",calcUsed));
+["newPrice","newCash"].forEach(id=>document.getElementById(id).addEventListener("input",calcNew));
+
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  document.getElementById("usedPrice").value=23900;
+  document.getElementById("usedCash").value=0;
+  document.getElementById("newPrice").value=24900;
+  document.getElementById("newCash").value=0;
+  calcUsed(); calcNew();
+});
+
+document.getElementById("copyBtn").addEventListener("click",async()=>{
+  const up = Number(document.getElementById("usedPrice").value||0);
+  const np = Number(document.getElementById("newPrice").value||0);
+  const text =
+`信用卡分期手續費試算
+二手機銷售金額：${fmt(up)}
+全新機銷售金額：${fmt(np)}
+分期方案：3期 5%／6期 7%／12期 9%
+※ 實際交易依公司與銀行最新規則為準。`;
+  try{
+    await navigator.clipboard.writeText(text);
+    const b=document.getElementById("copyBtn");
+    const old=b.textContent;b.textContent="已複製";
+    setTimeout(()=>b.textContent=old,1200);
+  }catch(e){ alert("瀏覽器不支援自動複製，請手動複製。"); }
+});
+
+calcUsed(); calcNew();
+</script>
+</body>
+</html>
