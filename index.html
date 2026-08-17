@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>信用卡分期手續費試算工具 V1.4</title>
+<title>信用卡分期手續費試算工具 V1.6</title>
 <style>
 :root{
   --bg:#f5f7fb;
@@ -121,7 +121,7 @@ tr:last-child td{border-bottom:0}
 <div class="app">
   <div class="header">
     <div class="title">
-      <h1>信用卡分期手續費試算工具 V1.4</h1>
+      <h1>信用卡分期手續費試算工具 V1.6</h1>
       <p>門市快速試算｜一般刷卡・分期・部分刷卡部分付現</p>
     </div>
     <div class="bank-note">
@@ -139,7 +139,7 @@ tr:last-child td{border-bottom:0}
         <div class="form-grid">
           <div class="field highlight">
             <label>輸入銷售金額</label>
-            <input id="usedPrice" type="number" min="0" step="1" value="23900">
+            <input id="usedPrice" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="0">
           </div>
           <div class="field">
             <label>單筆刷總額</label>
@@ -147,7 +147,7 @@ tr:last-child td{border-bottom:0}
           </div>
           <div class="field">
             <label>部分付現</label>
-            <input id="usedCash" type="number" min="0" step="1" value="0">
+            <input id="usedCash" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="0">
           </div>
           <div class="field">
             <label>剩餘刷卡金額</label>
@@ -187,7 +187,7 @@ tr:last-child td{border-bottom:0}
         <div class="form-grid">
           <div class="field highlight">
             <label>輸入銷售金額（POS牌價／含稅）</label>
-            <input id="newPrice" type="number" min="0" step="1" value="24900">
+            <input id="newPrice" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="0">
           </div>
           <div class="field">
             <label>單筆刷總額（+3%）</label>
@@ -195,7 +195,7 @@ tr:last-child td{border-bottom:0}
           </div>
           <div class="field">
             <label>部分付現金額</label>
-            <input id="newCash" type="number" min="0" step="1" value="0">
+            <input id="newCash" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="0">
           </div>
           <div class="field">
             <label>剩餘刷卡金額（+3%）</label>
@@ -325,10 +325,40 @@ function calcNew(){
 ["usedPrice","usedCash"].forEach(id=>document.getElementById(id).addEventListener("input",calcUsed));
 ["newPrice","newCash"].forEach(id=>document.getElementById(id).addEventListener("input",calcNew));
 
+// 金額輸入防呆：
+// 1. 點入欄位時，若為 0 就直接全選；使用者輸入第一個數字會覆蓋 0。
+// 2. 輸入過程只保留數字。
+// 3. 即使快速輸入成 05000，也會立即自動修正為 5000。
+// 4. 空白離開欄位時才恢復顯示 0。
+["usedPrice","usedCash","newPrice","newCash"].forEach(id=>{
+  const input = document.getElementById(id);
+
+  input.addEventListener("focus",()=>{
+    if(input.value === "0"){
+      // 用全選比直接清空更穩定：第一個按鍵一定覆蓋掉 0。
+      requestAnimationFrame(()=>input.select());
+    }
+  });
+
+  input.addEventListener("input",()=>{
+    let v = input.value.replace(/\D/g, "");
+    // 去除所有不必要的開頭 0；單獨一個 0 則允許保留。
+    if(v.length > 1) v = v.replace(/^0+/, "");
+    input.value = v;
+  });
+
+  input.addEventListener("blur",()=>{
+    if(input.value === ""){
+      input.value = "0";
+      input.dispatchEvent(new Event("input", {bubbles:true}));
+    }
+  });
+});
+
 document.getElementById("resetBtn").addEventListener("click",()=>{
-  document.getElementById("usedPrice").value=23900;
+  document.getElementById("usedPrice").value=0;
   document.getElementById("usedCash").value=0;
-  document.getElementById("newPrice").value=24900;
+  document.getElementById("newPrice").value=0;
   document.getElementById("newCash").value=0;
   calcUsed(); calcNew();
 });
